@@ -1,16 +1,18 @@
-import pandas as pd
-import time
-import numpy as np
 import math
-from selenium import webdriver
-from selenium.common import exceptions
-from selenium.webdriver.common.by import By
 import os
-from datetime import datetime, timedelta
-from functools import reduce
 import re
 import tempfile
+import time
+from datetime import datetime, timedelta
+from functools import reduce
 
+import numpy as np
+import pandas as pd
+from selenium import webdriver
+from selenium.common import exceptions
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 # Name of the download file created by Google Trends
 NAME_DOWNLOAD_FILE = 'multiTimeline.csv'
@@ -283,14 +285,15 @@ class GoogleTrendsScraper:
         if self.path_driver is None:
             self.path_driver = 'chromedriver'
         # Start the browser
+        service = Service(service=ChromeDriverManager().install())
         self.browser = webdriver.Chrome(
-            executable_path=self.path_driver, chrome_options=chrome_options)
+            service=service, chrome_options=chrome_options)
         # Define the download behaviour of chrome
         # noinspection PyProtectedMember
         self.browser.command_executor._commands["send_command"] = (
             "POST", '/session/$sessionId/chromium/send_command')
         self.browser.execute("send_command", {'cmd': 'Page.setDownloadBehavior', 'params':
-                                              {'behavior': 'allow', 'downloadPath': self.download_path.name}})
+            {'behavior': 'allow', 'downloadPath': self.download_path.name}})
 
     def quit_browser(self):
         """
@@ -330,7 +333,7 @@ class GoogleTrendsScraper:
             # Get the trends over the entire sample:
             url_all_i = self.create_url(keywords_i,
                                         previous_weekday(start_datetime, 0), next_weekday(
-                                            end_datetime, 6),
+                    end_datetime, 6),
                                         region, category)
             data_all_i, frequency_i = self.get_data(url_all_i)
             # If the data for the entire sample is already at the daily frequency we are done. Otherwise we need to
@@ -374,7 +377,7 @@ class GoogleTrendsScraper:
         for x in range(int(num_subperiods)):
             start_sub = start + timedelta(days=x * num_days_in_subperiod)
             end_sub = start + \
-                timedelta(days=(x + 1) * num_days_in_subperiod - 1)
+                      timedelta(days=(x + 1) * num_days_in_subperiod - 1)
             if end_sub > end:
                 end_sub = end
             if start_sub < end:
@@ -430,18 +433,18 @@ class GoogleTrendsScraper:
                 self.go_to_url(url)
                 # Sleep the code by the defined time plus a random number of seconds between 0s and 2s. This should
                 # reduce the likelihood that Google detects us as a scraper
-                time.sleep(self.sleep*(1+np.random.rand()))
+                time.sleep(self.sleep * (1 + np.random.rand()))
                 # Try to find the button and click it
                 line_chart = self.browser.find_element(By.CSS_SELECTOR,
-                    "widget[type='fe_line_chart']")
+                                                       "widget[type='fe_line_chart']")
                 button = line_chart.find_element(By.CSS_SELECTOR,
-                    '.widget-actions-item.export')
+                                                 '.widget-actions-item.export')
                 button.click()
             except exceptions.NoSuchElementException:
                 # If the button cannot be found, try again (load page, ...)
                 pass
         # After downloading, wait again to allow the file to be downloaded
-        time.sleep(self.sleep*(1+np.random.rand()))
+        time.sleep(self.sleep * (1 + np.random.rand()))
         # Load the data from the csv-file as pandas.DataFrame object
         data = pd.read_csv(self.filename, skiprows=1)
         # Set date as index:
@@ -458,7 +461,7 @@ class GoogleTrendsScraper:
             data = data.set_index("Month")
             frequency = 'Monthly'
         # Sleep again
-        time.sleep(self.sleep*(1+np.random.rand()))
+        time.sleep(self.sleep * (1 + np.random.rand()))
         # Delete the file
         while os.path.exists(self.filename):
             try:

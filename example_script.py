@@ -1,9 +1,15 @@
-from src.GoogleTrendsScraper import GoogleTrendsScraper
-import os
+import chromedriver_autoinstaller
 
-gts = GoogleTrendsScraper(sleep=5, path_driver=os.environ['CHROMEDRIVER'], headless=True)
-data = gts.get_trends('foo', '2018-07-02', '2019-04-02', 'US')
+from src.GoogleTrendsScraper import GoogleTrendsScraper
+
+chromedriver_autoinstaller.install()
+
+gts = GoogleTrendsScraper(sleep=2, headless=True)
+data = gts.get_trends('flu', '2018-01-01', '2019-03-31', 'US')
+del gts
 
 print(data)
 
-del gts
+data.plot()
+
+
