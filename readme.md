@@ -10,10 +10,6 @@ The scraper is constructed using Python 3.7 and is based on `selenium` and `pand
 modules can be installed by navigating to the root of this project and running 
 `pip install -r requirements.txt`.
 
-Moreover, Selenium needs a browser-driver, e.g. [Google Chrome driver](https://sites.google.com/a/chromium.org/chromedriver/downloads).
-The path to the driver's location has to be added to the system path variables or 
-indicated when initializing the `GoogleTrendsScraper` object (see below) 
-
 ## Usage
 First, a `GoogleTrendsScraper` object needs to be initialized with (optional) parameters, such as
 the `sleep` time used to when long time windows are scraped, the `headless` option which defines
@@ -22,12 +18,19 @@ keyword, time range and region can be obtained by running the `GoogleTrendsScrpa
 method. 
 
 ```python
+import chromedriver_autoinstaller
+
 from src.GoogleTrendsScraper import GoogleTrendsScraper
 
-gts = GoogleTrendsScraper(sleep=2, path_driver='path/to/driver.exe', headless=True)
-data = gts.get_trends('foo', '2018-01-01', '2019-03-31', 'US')
+chromedriver_autoinstaller.install()
 
+gts = GoogleTrendsScraper(sleep=2, headless=True)
+data = gts.get_trends('flu', '2018-01-01', '2019-03-31', 'US')
 del gts
+
+print(data)
+
+data.plot()
 ```
 
 
