@@ -121,10 +121,14 @@ def merge_keyword_chunks(data_list):
     """
     # Iteratively merge the DataFrame objects in the list of data
     data = reduce((lambda x, y: merge_two_keyword_chunks(x, y)), data_list)
-    # Find the maximal value across keywords and time
-    max_value = data.max().max()
-    # Rescale the trends by the maximal value, i.e. such that the largest value across keywords and time is 100
-    data = 100 * data / max_value
+
+    # Find the maximal value across keywords and time, ignoring non-numeric columns
+    numeric_columns = data.select_dtypes(include=[np.number]).columns
+    if len(numeric_columns) > 0:
+        max_value = data[numeric_columns].max().max()
+        # Rescale the trends by the maximal value, i.e. such that the largest value across keywords and time is 100
+        data[numeric_columns] = 100 * data[numeric_columns] / max_value
+
     return data
 
 
@@ -304,7 +308,7 @@ class GoogleTrendsScraper:
             self.browser.quit()
             self.browser = None
 
-    def get_trends(self, keywords, start, end, region=None, category=None):
+    def get_trends(self, keywords, start, end, region=None, category=None, time_scale='daily'):
         """
         Function that starts the scraping procedure and returns the Google Trend data.
         Args:
@@ -313,48 +317,62 @@ class GoogleTrendsScraper:
             start: start date as a string
             end: end date as a string
             category: integer indicating the category (e.g. 7 is the category "Finance")
+            time_scale: string indicating the desired time scale ('daily', 'weekly', or 'monthly'), default is 'daily'
 
         Returns: pandas DataFrame with a 'Date' column and a column containing the trend for each keyword in 'keywords'
 
         """
-        # If only a single keyword is given, i.e. as a string and not as a list, put the single string into a list
         if not isinstance(keywords, list):
             keywords = [keywords]
-        # Convert the date strings to Google's format:
-        start = adjust_date_format(
-            start, self.date_format, self._google_date_format)
-        end = adjust_date_format(
-            end, self.date_format, self._google_date_format)
-        # Create datetime objects from the date-strings:
+
+        start = adjust_date_format(start, self.date_format, self._google_date_format)
+        end = adjust_date_format(end, self.date_format, self._google_date_format)
         start_datetime = datetime.strptime(start, self._google_date_format)
         end_datetime = datetime.strptime(end, self._google_date_format)
+
+        # Set the frequency based on the time_scale parameter
+        if time_scale.lower() == 'daily':
+            freq = 'D'
+        elif time_scale.lower() == 'weekly':
+            freq = 'W'
+        elif time_scale.lower() == 'monthly':
+            freq = 'M'
+        else:
+            raise ValueError("Invalid time_scale. Choose 'daily', 'weekly', or 'monthly'.")
+
         data_keywords_list = []
         for keywords_i in get_chunks(keywords, MAX_KEYWORDS):
-            # Get the trends over the entire sample:
-            url_all_i = self.create_url(keywords_i,
-                                        previous_weekday(start_datetime, 0), next_weekday(
-                    end_datetime, 6),
+            url_all_i = self.create_url(keywords_i, previous_weekday(start_datetime, 0), next_weekday(end_datetime, 6),
                                         region, category)
-            data_all_i, frequency_i = self.get_data(url_all_i)
-            # If the data for the entire sample is already at the daily frequency we are done. Otherwise we need to
-            # get the trends for sub-periods
-            if frequency_i == 'Daily':
-                data_i = data_all_i
-            else:
-                # Iterate over the URLs of the sub-periods and retrieve the Google Trend data for each
-                data_time_list = []
-                for url in self.create_urls_subperiods(keywords_i, start_datetime, end_datetime, region, category):
-                    data_time_list.append(self.get_data(url)[0])
-                # Concatenate the so obtained set of DataFrames to a single DataFrame
-                data_i = concat_data(
-                    data_time_list, data_all_i, keywords_i, frequency_i)
-            # Add the data for the current list of keywords to a list
-            data_keywords_list.append(data_i)
-        # Merge the multiple keyword chunks
-        data = merge_keyword_chunks(data_keywords_list)
-        # Cut data to return only the desired period:
-        data = data.loc[data.index.isin(pd.date_range(
-            start_datetime, end_datetime, freq='D'))]
+            try:
+                data_all_i, frequency_i = self.get_data(url_all_i)
+
+                if frequency_i == 'Daily':
+                    data_i = data_all_i
+                else:
+                    data_time_list = []
+                    for url in self.create_urls_subperiods(keywords_i, start_datetime, end_datetime, region, category):
+                        data_time_list.append(self.get_data(url)[0])
+                    data_i = concat_data(data_time_list, data_all_i, keywords_i, frequency_i)
+
+                data_keywords_list.append(data_i)
+            except Exception as e:
+                print(f"No data found for keywords: {keywords_i}. Creating zero-filled DataFrame.")
+                date_range = pd.date_range(start=start_datetime, end=end_datetime, freq=freq)
+                data_i = pd.DataFrame(0, index=date_range, columns=keywords_i)
+                data_keywords_list.append(data_i)
+
+        if len(data_keywords_list) > 0:
+            data = merge_keyword_chunks(data_keywords_list)
+        else:
+            date_range = pd.date_range(start=start_datetime, end=end_datetime, freq=freq)
+            data = pd.DataFrame(0, index=date_range, columns=keywords)
+
+        # Resample the data to the desired frequency
+        if freq != 'D':
+            data = data.resample(freq).mean()
+
+        data = data.loc[data.index.isin(pd.date_range(start_datetime, end_datetime, freq=freq))]
         return data
 
     def create_urls_subperiods(self, keywords, start, end, region=None, category=None):
