@@ -342,6 +342,7 @@ class GoogleTrendsScraper:
 
         data_keywords_list = []
         for keywords_i in get_chunks(keywords, MAX_KEYWORDS):
+            print(f"Scraping keywords: {keywords_i}")
             url_all_i = self.create_url(keywords_i, previous_weekday(start_datetime, 0), next_weekday(end_datetime, 6),
                                         region, category)
             try:

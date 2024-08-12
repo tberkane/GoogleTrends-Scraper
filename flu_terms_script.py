@@ -1,0 +1,146 @@
+import os
+
+import chromedriver_autoinstaller
+
+from src.GoogleTrendsScraper import GoogleTrendsScraper
+
+chromedriver_autoinstaller.install()
+
+flu_terms = [
+    "body temperature",
+    "braun thermoscan",
+    "break a fever",
+    "bronchitis",
+    "cold and flu",
+    "cold or flu",
+    "cold versus flu",
+    "cold vs. flu",
+    "contagious flu",
+    "cure flu",
+    "cure the flu",
+    "dangerous fever",
+    "do i have the flu",
+    "duration of flu",
+    "ear thermometer",
+    "early flu symptoms",
+    "exposed to flu",
+    "fever cough",
+    "fever flu",
+    "fever reducer",
+    "fevers",
+    "fight the flu",
+    "flu and cold",
+    "flu and fever",
+    "flu and pregnancy",
+    "flu care",
+    "flu children",
+    "flu complications",
+    "flu contagious period",
+    "flu contagious",
+    "flu cough",
+    "flu duration",
+    "flu fever",
+    "flu germs",
+    "flu headache",
+    "flu how long",
+    "flu in children",
+    "flu incubation",
+    "flu lasts",
+    "flu length",
+    "flu medicine",
+    "flu or cold",
+    "flu recovery",
+    "flu remedies",
+    "flu report",
+    "flu test",
+    "flu treatment",
+    "flu treatments",
+    "flu versus cold",
+    "flu vs. cold",
+    "get over the flu",
+    "get rid of the flu",
+    "having the flu",
+    "high fever",
+    "how long contagious",
+    "how long does flu last",
+    "how long does the flu last",
+    "how long flu",
+    "how long is flu contagious",
+    "how long is the flu contagious",
+    "how long is the flu",
+    "how to get rid of the flu",
+    "how to reduce a fever",
+    "how to treat flu",
+    "how to treat the flu",
+    "human temperature",
+    "i have the flu",
+    "incubation period for flu",
+    "incubation period for the flu",
+    "influenza a and b",
+    "influenza a",
+    "influenza contagious",
+    "influenza incubation period",
+    "influenza incubation",
+    "influenza symptoms",
+    "influenza treatment",
+    "influenza type a",
+    "is flu contagious",
+    "is the flu contagious",
+    "length of flu",
+    "low body",
+    "medicine for flu",
+    "medicine for the flu",
+    "normal body temperature",
+    "normal body",
+    "oscillococcinum",
+    "over the counter flu medicine",
+    "over the counter flu",
+    "painful cough",
+    "pneumonia",
+    "reduce a fever",
+    "reduce fever",
+    "remedies for flu",
+    "remedies for the flu",
+    "signs of flu",
+    "signs of the flu",
+    "sinus infections",
+    "sinus",
+    "symptoms of bronchitis",
+    "symptoms of flu",
+    "symptoms of pneumonia",
+    "symptoms of the flu",
+    "taking temperature",
+    "the flu virus",
+    "the flu",
+    "thermoscan",
+    "treat flu",
+    "treat the flu",
+    "treating flu",
+    "treating the flu",
+    "treatment for flu",
+    "treatment for the flu",
+    "tussin",
+    "tussionex",
+    "type a influenza",
+    "upper respiratory",
+    "walking pneumonia",
+    "weather march",
+    "what to do if you have the flu"
+]
+
+gts = GoogleTrendsScraper(sleep=4, headless=True)
+
+for term in flu_terms:
+    # continue if file already exists
+    if os.path.exists(f'results/{term}_trends.csv'):
+        print(f'{term} already exists')
+        continue
+    data = gts.get_trends(term, '2020-01-01', '2024-01-01', 'US', time_scale="weekly")
+
+    data.index.name = 'date'
+    data.columns = data.columns.str.split(':').str[0]
+    data.to_csv(f'results/{term}_trends.csv', index=True)
+
+    print(f'{term} done')
+
+del gts
