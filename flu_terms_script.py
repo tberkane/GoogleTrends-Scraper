@@ -125,22 +125,18 @@ flu_terms = [
     "upper respiratory",
     "walking pneumonia",
     "weather march",
-    "what to do if you have the flu"
+    "what to do if you have the flu",
 ]
 
-gts = GoogleTrendsScraper(sleep=4, headless=True)
+gts = GoogleTrendsScraper(sleep=1)
 
 for term in flu_terms:
     # continue if file already exists
-    if os.path.exists(f'results/{term}_trends.csv'):
-        print(f'{term} already exists')
+    if os.path.exists(f"results/{term}_trends.csv"):
+        print(f"{term} already exists")
         continue
-    data = gts.get_trends(term, '2020-01-01', '2024-01-01', 'US', time_scale="weekly")
+    data = gts.get_trends(term, "2020-01-01", "2024-01-01", "US")
+    data.to_csv(f"results/{term}_trends.csv")
 
-    data.index.name = 'date'
-    data.columns = data.columns.str.split(':').str[0]
-    data.to_csv(f'results/{term}_trends.csv', index=True)
-
-    print(f'{term} done')
 
 del gts
