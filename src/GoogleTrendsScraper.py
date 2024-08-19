@@ -19,12 +19,13 @@ NAME_DOWNLOAD_FILE = "multiTimeline.csv"
 
 
 class GoogleTrendsScraper:
-    def __init__(self, sleep=1, path_driver=None):
+    def __init__(self, save_path, sleep=1, path_driver=None):
         """
         Constructor of the Google-Scraper-Class
         Args:
             sleep: integer number of seconds where the scraping waits (avoids getting blocked and gives the code time
                     to download the data
+            save_path: path as string to where the data is saved
             path_driver: path as string to where the chrome driver is located
         """
         # Current directory
@@ -43,6 +44,7 @@ class GoogleTrendsScraper:
         self.sleep = sleep
         # Format of dates used by google
         self._google_date_format = "%Y-%m-%d"
+        self.save_path = save_path
         # Lunch the browser
         self.start_browser()
 
@@ -99,7 +101,7 @@ class GoogleTrendsScraper:
 
     def get_trends(
         self,
-        keyword,
+        keywords,
         start,
         end,
         region=None,
@@ -108,7 +110,7 @@ class GoogleTrendsScraper:
         """
         Function that starts the scraping procedure and returns the Google Trend data.
         Args:
-            keyword: string of keyword
+            keywords: list of strings of keywords
             region: string indicating the region for which the trends are computed, default is None (Worldwide trends)
             start: start date as a string
             end: end date as a string
@@ -117,14 +119,21 @@ class GoogleTrendsScraper:
         Returns: pandas DataFrame
 
         """
-        print(f"Scraping keyword: {keyword}")
-        url = self.create_url(keyword, start, end, region, category)
-        try:
-            data = self.get_data(url)
-            return data
-        except Exception as e:
-            print(f"No data found for keyword: {keyword}.")
-            return None
+        if not isinstance(keywords, list):
+            keywords = [keywords]
+        for keyword in keywords:
+            print(f"Scraping keyword: {keyword}")
+            url = self.create_url(keyword, start, end, region, category)
+            try:
+                data = self.get_data(url)
+                if data is not None:
+                    # Save to CSV
+                    csv_filename = f"{keyword.replace(' ', '_')}_trends.csv"
+                    csv_path = os.path.join(self.save_path, csv_filename)
+                    data.to_csv(csv_path)
+                    print(f"Data for '{keyword}' saved to {csv_path}")
+            except Exception as e:
+                print(f"No data found for keyword: {keyword}.")
 
     def create_url(self, keyword, start, end, region=None, category=None):
         """
