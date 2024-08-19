@@ -99,7 +99,7 @@ class GoogleTrendsScraper:
 
     def get_trends(
         self,
-        keywords,
+        keyword,
         start,
         end,
         region=None,
@@ -108,7 +108,7 @@ class GoogleTrendsScraper:
         """
         Function that starts the scraping procedure and returns the Google Trend data.
         Args:
-            keywords: list of strings of keywords
+            keyword: string of keyword
             region: string indicating the region for which the trends are computed, default is None (Worldwide trends)
             start: start date as a string
             end: end date as a string
@@ -117,15 +117,14 @@ class GoogleTrendsScraper:
         Returns: pandas DataFrame
 
         """
-        for keyword in keywords:
-            print(f"Scraping keyword: {keyword}")
-            url = self.create_url(keyword, start, end, region, category)
-            try:
-                data = self.get_data(url)
-                return data
-            except Exception as e:
-                print(f"No data found for keyword: {keyword}.")
-                return None
+        print(f"Scraping keyword: {keyword}")
+        url = self.create_url(keyword, start, end, region, category)
+        try:
+            data = self.get_data(url)
+            return data
+        except Exception as e:
+            print(f"No data found for keyword: {keyword}.")
+            return None
 
     def create_url(self, keyword, start, end, region=None, category=None):
         """
